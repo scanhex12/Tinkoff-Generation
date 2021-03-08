@@ -1,0 +1,259 @@
+﻿#include<iostream>
+#include<vector>
+#include<algorithm>
+using namespace std;
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize("no-stack-protector")
+#pragma GCC optimize("unroll-loops")
+#pragma GCC optimize("fast-math")
+#pragma GCC optimize("vpt")
+vector<int> a;
+vector<pair<int, int>> sa;
+int k = 500;
+struct block {
+    int l, r;
+    bool rev = false;
+    int mod = -1;
+    block() {
+        l = -1, r = -1;
+    }
+    block(int _l, int _r) {
+        l = _l, r = _r;
+    }
+};
+vector<block> b;
+pair<block, block> divide(block a2, int x) {
+    block a1, b1;
+    if (x == 0) return { a1, a2 };
+    if (x == a2.r - a2.l + 1) return make_pair(a2, a1);
+    a1.l = a2.l;
+    a1.r = a2.l + x - 1;
+    b1.l = a2.l + x;
+    b1.r = a2.r;
+    for (int i = a1.l; i <= a1.r; ++i) {
+        sa[i].first = a[i];
+    }
+    for (int i = b1.l; i <= b1.r; ++i) {
+        sa[i].first = a[i];
+    }
+    vector<pair<int, int>>::iterator it1 = sa.begin() + a1.l;
+    vector<pair<int, int>>::iterator it2 = sa.begin() + a1.r + 1;
+    sort(it1, it2);
+    it1 = sa.begin() + b1.l;
+    it2 = sa.begin() + b1.r + 1;
+    sort(it1, it2);
+    return make_pair(a1, b1);
+}
+void push(int x) {
+    if (b[x].rev) {
+        vector<int>::iterator it1 = a.begin() + b[x].l;
+        vector<int>::iterator it2 = a.begin() + b[x].r + 1;
+        reverse(it1, it2);
+        b[x].rev = false;
+    }
+    if (b[x].mod != -1) {
+        for (int i = b[x].l; i <= b[x].r; ++i) {
+            sa[i].first = b[x].mod;
+            a[i] = sa[i].first;
+        }
+        b[x].mod = -1;
+    }
+}
+pair<int, int> getnumblock(int pos) {
+    int ans = 0, it = 0;
+    int prevans = 0;
+    while (it < b.size()) {
+        prevans = ans;
+        ans += b[it].r - b[it].l + 1;
+        if (ans > pos) {
+            return { it, pos - prevans };
+        }
+        it++;
+    }
+    return { it, pos - prevans };
+}
+void addblock(pair<block, block>& bl, int x) {
+    vector<block> s;
+    s.reserve(b.size());
+    for (int i = 0; i < x; ++i) {
+        if (b[i].l != -1) {
+            s.push_back(b[i]);
+        }
+    }
+    if (bl.first.l != -1) s.push_back(bl.first);
+    if (bl.second.l != -1) s.push_back(bl.second);
+    for (int i = x + 1; i < (int)b.size(); ++i) {
+        if (b[i].l != -1) {
+            s.push_back(b[i]);
+        }
+    }
+    swap(s, b);
+}
+void rever(int l, int r) {
+    pair<int, int> l1 = getnumblock(l);
+    pair<int, int> r1 = getnumblock(r);
+    if (l1.first == r1.first) {
+        push(l1.first);
+        vector<int> q1;
+        vector<int>::iterator it1 = a.begin() + b[l1.first].l + l1.second;
+        vector<int>::iterator it2 = a.begin() + b[l1.first].l + r1.second + 1;
+        reverse(it1, it2);
+        return;
+    }
+    push(l1.first);
+    push(r1.first);
+    pair<block, block> p1 = divide(b[l1.first], l1.second);
+    pair<block, block> p2 = divide(b[r1.first], r1.second + 1);
+    int sz = 0;
+    if (p1.first.l != -1 && p1.second.l != -1) {
+        sz = 1;
+        addblock(p1, l1.first);
+    }
+    bool ok1 = false;
+    if (p2.second.l != -1 && p2.first.l != -1) {
+        ok1 = 1;
+        addblock(p2, r1.first + sz);
+    }
+    int left = (sz ? l1.first + 1 : l1.first);
+    int right = (ok1 ? r1.first + sz : r1.first + sz);
+    vector<block>::iterator it1 = b.begin() + left;
+    vector<block>::iterator it2 = b.begin() + right + 1;
+    for (int i = left; i <= right; ++i) {
+        b[i].rev ^= 1;
+    }
+    reverse(it1, it2);
+}
+void rebuild_block(int x) {
+    for (int i = b[x].l; i <= b[x].r; ++i) {
+        sa[i].first = a[i];
+    }
+    vector<pair<int, int>>::iterator it1 = sa.begin() + b[x].l;
+    vector<pair<int, int>>::iterator it2 = sa.begin() + b[x].r + 1;
+    sort(it1, it2);
+}
+int getlower(int l, int r, int x) {
+    pair<int, int> l1 = getnumblock(l);
+    pair<int, int> r1 = getnumblock(r);
+    int ans = 0;
+    if (l1.first == r1.first) {
+        push(l1.first);
+        for (int i = b[l1.first].l + l1.second; i <= b[r1.first].l + r1.second; ++i) {
+            ans += (a[i] < x);
+        }
+        return ans;
+    }
+    push(l1.first);
+    push(r1.first);
+    for (int i = b[l1.first].l + l1.second; i <= b[l1.first].r; ++i) {
+        ans += (a[i] < x);
+    }
+    for (int i = b[r1.first].l; i <= b[r1.first].l + r1.second; ++i) {
+        ans += (a[i] < x);
+    }
+    for (int i = l1.first + 1; i < r1.first; ++i) {
+        if (b[i].mod == -1) {
+            vector<pair<int, int>>::iterator it1 = sa.begin() + b[i].l;
+            vector<pair<int, int>>::iterator it2 = sa.begin() + b[i].r + 1;
+            int lw = lower_bound(it1, it2, make_pair(x, -1000000000)) - it1;
+            ans += lw;
+        } else {
+            ans += (b[i].mod < x) * (b[i].r - b[i].l + 1);
+        }
+    }
+    return ans;
+}
+void add(int l, int r, int x) {
+    pair<int, int> l1 = getnumblock(l);
+    pair<int, int> r1 = getnumblock(r);
+    push(l1.first);
+    push(r1.first);
+    if (l1.first == r1.first) {
+        for (int i = b[l1.first].l + l1.second; i <= b[r1.first].l + r1.second; ++i) {
+            a[i] = x;
+        }
+        rebuild_block(l1.first);
+        return;
+    }
+    for (int i = b[l1.first].l + l1.second; i <= b[l1.first].r; ++i) {
+        a[i] = x;
+    }
+    rebuild_block(l1.first);
+    for (int i = b[r1.first].l; i <= b[r1.first].l + r1.second; ++i) {
+        a[i] = x;
+    }
+    rebuild_block(r1.first);
+    for (int i = l1.first + 1; i < r1.first; ++i) {
+        b[i].mod = x;
+    }
+}
+void build(vector<int>& arr) {
+    a = arr;
+    b.clear();
+    sa.resize(arr.size());
+    for (int i = 0; i < arr.size(); ++i) {
+        sa[i] = { a[i], i };
+    }
+    int n = arr.size();
+    for (int i = 0; i < n; ++i) {
+        if (i % k == 0) {
+            b.push_back(block(i, i));
+        } else {
+            b.back().r++;
+        }
+    }
+    for (auto elem : b) {
+        vector<pair<int, int>>::iterator it1 = sa.begin() + elem.l;
+        vector<pair<int, int>>::iterator it2 = sa.begin() + elem.r + 1;
+        sort(it1, it2);
+    }
+}
+void rebuild() {
+    vector<int> arr;
+    for (int i = 0; i < b.size(); ++i) {
+        push(i);
+    }
+    arr.reserve(a.size());
+    for (auto elem : b) {
+        for (int i = elem.l; i <= elem.r; ++i) {
+            arr.push_back(a[i]);
+        }
+    }
+    build(arr);
+}
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
+    cout.tie(0);
+    int n;
+    cin >> n;
+    vector<int> a(n);
+    for (int i = 0; i < n; ++i) cin >> a[i];
+    build(a);
+    int q;
+    cin >> q;
+    for (int i = 0; i < q; ++i) {
+        string s;
+        cin >> s;
+        if (s[0] == 'g') {
+            int l, r, x;
+            cin >> l >> r >> x;
+            --l, --r;
+            cout << (r - l + 1 - getlower(l, r, x)) << '\n';
+        }
+        if (s[0] == 's') {
+            int l, r, x;
+            cin >> l >> r >> x;
+            --l, --r;
+            add(l, r, x);
+        }
+        if (s[0] == 'r') {
+            int l, r;
+            cin >> l >> r;
+            --l, --r;
+            rever(l, r);
+        }
+        if (b.size() > 2 * n / k) {
+            rebuild();
+        }
+    }
+}
