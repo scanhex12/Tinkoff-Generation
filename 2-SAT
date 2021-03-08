@@ -1,0 +1,111 @@
+﻿#include<iostream>
+#include<vector>
+#include<algorithm>
+#include<time.h>
+#include<random>
+#include<queue>
+#include<set>
+#include<string>
+#include<map>
+#include<iomanip>
+#include<unordered_map>
+#define int long long
+using namespace std;
+using ll = long long;
+vector<vector<int>> g;
+vector<vector<int>> og;
+vector<int> ts;
+vector<int> used;
+void dfs(int v) {
+    used[v] = 1;
+    for (auto u : g[v]) {
+        if (!used[u]) {
+            dfs(u);
+        }
+    }
+    ts.push_back(v);
+}
+vector<int> num;
+vector<int> cs;
+void dfs2(int v, int col) {
+    used[v] = 1;
+    num[v] = col;
+    cs[col - 1] = v;
+    for (auto u : og[v]) {
+        if (!used[u]) {
+            dfs2(u, col);
+        }
+    }
+}
+void solve() {
+    int n;
+    while (cin >> n) {
+        int m;
+        cin >> m;
+        int N = 2 * n;
+        g.clear();
+        og.clear();
+        ts.clear();
+        g.resize(N);
+        og.resize(N);
+        used.clear();
+        used.resize(N);
+        while (m--) {
+            int i1, e1, i2, e2;
+            cin >> i1 >> e1 >> i2 >> e2;
+            int v1 = 2 * i1 + e1;//x1
+            int v2 = 2 * i1 + (e1 ^ 1);//!x1
+            int v3 = 2 * i2 + e2;
+            int v4 = 2 * i2 + (e2 ^ 1);
+            g[v2].push_back(v3);
+            g[v4].push_back(v1);
+            og[v3].push_back(v2);
+            og[v1].push_back(v4);
+        }
+        for (int i = 0; i < N; ++i) {
+            if (!used[i]) {
+                dfs(i);
+            }
+        }
+        cs = vector<int>(N, -1);
+        reverse(ts.begin(), ts.end());
+        used = vector<int>(N);
+        num = vector<int>(N);
+        int cur = 0;
+        for (int i : ts) {
+            if (!used[i]) {
+                dfs2(i, ++cur);
+            }
+        }
+        vector<int> okcomp(cur, -1);
+        for (int i = cur - 1; i >= 0; i--) {
+            if (okcomp[i] != -1) continue;
+            okcomp[i] = 1;
+            int v1 = cs[i];
+            v1 ^= 1;
+            int j = num[v1] - 1;
+            okcomp[j] = 0;
+        }
+        for (int i = 0; i < n; ++i) {
+            int x = 2 * i + 1;
+            if (okcomp[num[x] - 1]) {
+                cout << '1';
+            } else {
+                cout << '0';
+            }
+        }
+        cout << '\n';
+    }
+}
+int32_t main() {
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.tie(0);
+    srand(time(0));
+    int tt = 1;
+    //cin >> tt;
+    while (tt--) {
+        solve();
+    }
+    return 0;
+}
