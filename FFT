@@ -1,0 +1,122 @@
+﻿#include<iostream>
+#include<vector>
+#include<algorithm>
+#include<string>
+#include<complex>
+#define int long long
+using namespace std;
+typedef complex<double> cmpl;
+int n;
+int reverse(int mask) {
+    vector<int> b;
+    while (mask) {
+        b.push_back(mask % 2);
+        mask >>= 1;
+    }
+    while ((1 << b.size()) < n) {
+        b.push_back(0);
+    }
+    reverse(b.begin(), b.end());
+    int ans = 0;
+    int p = 1;
+    for (auto i : b) {
+        ans += i * p;
+        p *= 2;
+    }
+    return ans;
+}
+const double pi = atan2(0, -1);
+void fft(vector<cmpl>& a, bool ok) {
+    for (int i = 0; i < n; ++i) {
+        int j = reverse(i);
+        if (j > i) swap(a[i], a[j]);
+    }
+    for (int len = 1; len < n; len *= 2) {
+        double alph = (ok ? -1 : 1) * pi / len;
+        cmpl w0(cos(alph), sin(alph));
+        for (int i = 0; i < n; i += 2 * len) {
+            cmpl w(1);
+            for (int j = 0; j < len; ++j) {
+                cmpl u = a[i + j];
+                cmpl v = a[i + j + len] * w;
+                a[i + j] = u + v;
+                a[i + j + len] = u - v;
+                w *= w0;
+            }
+        }
+    }
+}
+vector<int> mult(vector<int> a, vector<int> b) {
+    vector<cmpl> ac(n), bc(n);
+    for (int i = 0; i < n; ++i) {
+        ac[i] = a[i];
+        bc[i] = b[i];
+    }
+    fft(ac, 0);
+    fft(bc, 0);
+    vector<cmpl> res(n);
+    for (int i = 0; i < n; ++i) {
+        res[i] = ac[i] * bc[i];
+    }
+    fft(res, 1);
+    for (int i = 0; i < n; ++i) {
+        res[i] /= n;
+    }
+    vector<int> ans(n);
+    for (int i = 0; i < n; ++i) {
+        ans[i] = (round)(res[i].real());
+    }
+    return ans;
+}
+int32_t main() {
+    string sa;
+    cin >> sa;
+    string sb;
+    cin >> sb;
+    int sign = 1;
+    reverse(sa.begin(), sa.end());
+    reverse(sb.begin(), sb.end());
+    if (sa.back() == '-') {
+        sign *= -1;
+        sa.pop_back();
+    }
+    if (sb.back() == '-') {
+        sign *= -1;
+        sb.pop_back();
+    }
+    n = sa.length() + sb.length();
+    int pow2 = 1;
+    while (pow2 < n) {
+        pow2 *= 2;
+    }
+    n = pow2;
+    vector<int> a(n), b(n);
+    for (int i = 0; i < (int)sa.length(); ++i) {
+        a[i] = sa[i] - '0';
+    }
+    for (int i = 0; i < (int)sb.length(); ++i) {
+        b[i] = sb[i] - '0';
+    }
+
+    auto res = mult(a, b);
+    res.push_back(0);
+    for (int i = 0; i < n; ++i) {
+        res[i + 1] += res[i] / 10;
+        res[i] %= 10;
+    }
+    while (!res.empty() && res.back() == 0) {
+        res.pop_back();
+    }
+    if (res.empty()) {
+        cout << 0 << endl;
+    } else {
+        if (sign == -1) {
+            cout << '-';
+        }
+        reverse(res.begin(), res.end());
+        for (int i : res) {
+            cout << i;
+        }
+        cout << endl;
+    }
+}
