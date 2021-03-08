@@ -1,0 +1,92 @@
+﻿#include<iostream>
+#include<vector>
+#include<algorithm>
+using namespace std;
+const long long inf = 1e15 + 7;
+vector<vector<long long>> a;
+vector<long long> row_sum, c_sum;
+long long getval(long long i, long long j) {
+    return (a[i][j] + row_sum[i] + c_sum[j]);
+}
+int main() {
+    long long n;
+    cin >> n;
+    a = vector<vector<long long>>(n, vector<long long>(n));
+    for (long long i = 0; i < n; ++i) {
+        for (long long j = 0; j < n; ++j) {
+            cin >> a[i][j];
+        }
+    }
+    row_sum.resize(n);
+    c_sum.resize(n);
+    vector<vector<long long>> min1(n, vector<long long>(n, inf));
+    vector<vector<long long>> ps(n, vector<long long>(n, -1));
+    vector<long long> par;
+    vector<long long> cols(n, -1);
+    vector<long long> p_ans(n);
+    for (long long i = 0; i < n; ++i) {
+        vector<long long> act;
+        par.clear();
+        par = vector<long long>(n, -1);
+        act.push_back(i);
+        vector<long long> c(n);
+        bool ok = true;
+        while (ok) {
+            long long j = act.back();
+            for (long long k = 0; k < n; ++k) {
+                min1[i][k] = min(min1[i][k], getval(j, k));
+                if (min1[i][k] == getval(j, k)) {
+                    ps[i][k] = j;
+                }
+            }
+            long long mnval = inf;
+            long long i0 = -1;
+            for (long long k = 0; k < n; ++k) {
+                if (!c[k] && (mnval > min1[i][k])) {
+                    i0 = k;
+                    mnval = min(mnval, min1[i][k]);
+                }
+            }
+            if (i0 == -1) break;
+            for (auto elem : act) {
+                row_sum[elem] -= mnval;
+            }
+            for (long long k = 0; k < n; ++k) {
+                min1[i][k] -= mnval;
+            }
+            long long _ps = ps[i][i0];
+            for (long long k = 0; k < n; ++k) {
+                if (c[k]) {
+                    c_sum[k] += mnval;
+                }
+            }
+            if (cols[i0] == -1) {
+                while (_ps != -1) {
+                    cols[i0] = _ps;
+                    long long x = i0;
+                    i0 = p_ans[_ps];
+                    p_ans[_ps] = x;
+                    _ps = par[_ps];
+                }
+                ok = 0;
+            } else {
+                c[i0] = true;
+                act.push_back(cols[i0]);
+                par[cols[i0]] = _ps;
+            }
+        }
+    }
+    vector<long long> p1(n);
+    for (long long i = 0; i < n; ++i) {
+        p1[cols[i]] = i;
+    }
+    long long ans = 0;
+    for (long long i = 0; i < n; ++i) {
+        ans += a[i][p1[i]];
+    }
+    cout << ans << '\n';
+    for (long long i = 0; i < n; ++i) {
+        cout << i + 1 << ' ' << p1[i] + 1 << '\n';
+    }
+}
+Переотправить  Загрузить посылку
