@@ -1,0 +1,98 @@
+﻿#include<iostream>
+#include<vector>
+#include<unordered_map>
+#include<algorithm>
+using namespace std;
+#define int long long
+const int mod = 1e9 + 7;
+const int inf = 1e16;
+unordered_map<int, int> cost;
+vector<int> hashh, h;
+vector<vector<pair<int, char>>> g;
+vector<int> ppow;
+vector<vector<int>> up;
+int logn = 20;
+void dfsprecalc(int v) {
+    for (int i = 1; i < logn; ++i) {
+        up[v][i] = up[up[v][i - 1]][i - 1];
+    }
+    for (auto u : g[v]) {
+        up[u.first][0] = v;
+        h[u.first] = h[v] + 1;
+        hashh[u.first] = ((u.second - 'a' + 1) + hashh[v] * 31) % mod;
+        dfsprecalc(u.first);
+    }
+}
+vector<int> sumdps;
+vector<int> dp;
+int gethash(int right, int left, int sz) {
+    return (right - (left * ppow[sz]) % mod + mod) % mod;
+}
+int la(int v, int k) {
+    for (int i = 0; i < logn; ++i) {
+        if ((k & (1 << i))) {
+            v = up[v][i];
+        }
+    }
+    return v;
+}
+int gehash(string s) {
+    int ans = 0;
+    for (auto c : s) {
+        ans = (31 * ans + (c - 'a' + 1)) % mod;
+    }
+    return ans;
+}
+int32_t main() {
+    ios_base::sync_with_stdio(0);
+    cin.tie(0);
+    cout.tie(0);
+    int n;
+    cin >> n;
+    ppow.resize(n);
+    ppow[0] = 1;
+    for (int i = 1; i < ppow.size(); ++i) {
+        ppow[i] = (31 * ppow[i - 1]) % mod;
+    }
+    h.resize(n);
+    hashh.resize(n);
+    g.resize(n);
+    sumdps.resize(n);
+    dp.resize(n);
+    up = vector<vector<int>>(n, vector<int>(logn));
+    vector<int> lens;
+    for (int i = 0; i < n; ++i) {
+        int k;
+        cin >> k;
+        while (k--) {
+            int x;
+            char c;
+            cin >> x >> c;
+            --x;
+            g[i].push_back({ x, c });
+        }
+    }
+    int q;
+    cin >> q;
+    while (q--) {
+        string t;
+        cin >> t;
+        int hsh = gehash(t);
+        cost[hsh]++;
+        lens.push_back(t.size());
+    }
+    dfsprecalc(0);
+    sort(lens.begin(), lens.end());
+    int ans = 0;
+    lens.erase(unique(lens.begin(), lens.end()), lens.end());
+    for (int i = 0; i < n; ++i) {
+        for (auto elem : lens) {
+            if (h[i] >= elem) {
+                int v1 = la(i, elem);
+                int hash1 = gethash(hashh[i], hashh[v1], h[i] - h[v1]);
+                ans += cost[hash1];
+            }
+        }
+    }
+    cout << ans;
+}
