@@ -1,0 +1,111 @@
+﻿#include<iostream>
+#include<vector>
+#include<cmath>
+#include<unordered_map>
+#include<algorithm>
+using namespace std;
+int N = 2000000;
+int p;
+vector<int> num(N + 4), a, cnt, now, b;
+struct query {
+    int l, r, t, id;
+    query(int a, int b, int c, int d) {
+        l = a, r = b, t = c, id = d;
+    }
+    bool operator<(const query aa) {
+        return b[l] == b[aa.l] ? (b[r] == b[aa.r] ? t < aa.t : r < aa.r) : l < aa.l;
+    }
+};
+vector<query> q;
+struct change {
+    int pos, nw, od;
+    change() {
+        pos = 0, nw = 0, od = 0;
+    }
+    change(int a, int b, int c) {
+        pos = a, nw = b, od = c;
+    }
+};
+vector<change> c;
+unordered_map<int, int> mp;
+int l, r, t;
+int siz = 0;
+int getid(int x) {
+    if (mp[x] == 0) {
+        mp[x] = ++siz;
+    }
+    return mp[x];
+}
+void add(int val, int d) {
+    if (num[val] > 0) cnt[num[val]]--;
+    num[val] += d;
+    if (num[val] > 0) cnt[num[val]]++;
+}
+void go(int i, int d) {
+    if (l <= i && i <= r) {
+        add(a[i], -1);
+        add(d, 1);
+    }
+    a[i] = d;
+}
+int main() {
+    int n, m;
+    cin >> n >> m;
+    int sz = pow(n, 2.0 / 3);
+    a.resize(N);
+    now.resize(N);
+    c.resize(N);
+    cnt.resize(N);
+    b.resize(N);
+    for (int i = 1; i <= n; ++i) {
+        cin >> a[i];
+        now[i] = a[i] = getid(a[i]);
+        b[i] = (i - 1) / sz + 1;
+    }
+    int m1 = 0, m2 = 0;
+    for (int i = 0; i < m; ++i) {
+        int op, x, y;
+        cin >> op >> x >> y;
+        if (op == 1) {
+            q.push_back(query(x, y, m2, m1));
+            m1++;
+        } else {
+            y = getid(y);
+            c[++m2] = (change(x, y, now[x]));
+            now[x] = y;
+        }
+    }
+    vector<int> ans = vector<int>(m1);
+    sort(q.begin(), q.end());
+    l = 1, r = 0, t = 0;
+    for (int i = 0; i < m1; ++i) {
+        while (t < q[i].t) {
+            t++;
+            go(c[t].pos, c[t].nw);
+        }
+        while (t > q[i].t) {
+            go(c[t].pos, c[t].od);
+            t--;
+        }
+        while (l < q[i].l) {
+            add(a[l], -1);
+            l++;
+        }
+        while (l > q[i].l) {
+            l--;
+            add(a[l], 1);
+        }
+        while (r < q[i].r) {
+            r++;
+            add(a[r], 1);
+        }
+        while (r > q[i].r) {
+            add(a[r], -1);
+            r--;
+        }
+        int x = 1;
+        while (cnt[x] > 0) x++;
+        ans[q[i].id] = x;
+    }
+    for (auto elem : ans) cout << elem << endl;
+}
