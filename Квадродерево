@@ -1,0 +1,53 @@
+﻿#include<iostream>
+#include<vector>
+#include<iomanip>
+#include<cmath>
+#include<algorithm>
+using namespace std;
+using ld = double;
+const ld eps = 1e-7;
+const ld EPS = 1e-6;
+ld X, Y;
+int n;
+vector<ld> x, y, r;
+ld x0, u;
+bool solve(ld x1, ld x2, ld y1, ld y2, ld tm) {
+    if (x2 < x1 || y2 < y1) return 1;
+    if (abs(x2 - x1) < EPS || abs(y2 - y1) < EPS) return false;
+    bool ok = false;
+    ld xmid = (x1 + x2) / 2, ymid = (y1 + y2) / 2;
+    for (int i = 0; i < n; ++i) {
+        if (sqrt((x[i] - x1) * (x[i] - x1) + (y[i] - y1) * (y[i] - y1)) < (r[i] + tm + EPS)
+            && sqrt((x[i] - x1) * (x[i] - x1) + (y[i] - y2) * (y[i] - y2)) < (r[i] + tm + EPS)
+            && sqrt((x[i] - x2) * (x[i] - x2) + (y[i] - y1) * (y[i] - y1)) < (r[i] + tm + EPS)
+            && sqrt((x[i] - x2) * (x[i] - x2) + (y[i] - y2) * (y[i] - y2)) < (r[i] + tm + EPS)) {
+            return true;
+        }
+    }
+    if (solve(x1, xmid, y1, ymid, tm) &&
+        solve(xmid, x2, ymid, y2, tm) &&
+        solve(x1, xmid, ymid, y2, tm) &&
+        solve(xmid, x2, y1, ymid, tm)) return true;
+    return false;
+}
+int main() {
+    cin >> X >> Y;
+    cin >> n;
+    x.resize(n);
+    y.resize(n);
+    r.resize(n);
+    for (int i = 0; i < n; ++i) {
+        cin >> x[i] >> y[i] >> r[i];
+    }
+    ld tl = 0, tr = 2e4;
+    while (tl < tr - eps) {
+        ld tm = (tl + tr) / 2;
+        if (!solve(tm, X - tm, tm, Y - tm, tm)) {
+            tl = tm;
+        } else {
+            tr = tm;
+        }
+    }
+    cout << fixed << setprecision(20);
+    cout << tl;
+}
