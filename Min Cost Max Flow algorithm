@@ -1,0 +1,113 @@
+﻿#include<iostream>
+#include<algorithm>
+#include<vector>
+#include<set>
+#include<queue>
+using namespace std;
+#define int long long
+const int inf = 1e15 + 7;
+int n;
+struct edge {
+    int a, b, cost, flow = 0, c;
+    edge() {
+        a = 0, b = 0, cost = 0, flow = 0, c = 0;
+    }
+    edge(int _a, int _b, int _cost, int _c) {
+        a = _a, b = _b, cost = _cost, c = _c;
+    }
+};
+vector<edge> e;
+vector<vector<int>> g;
+void insert_edge(int a, int b, int c, int cost) {
+    g[a].push_back(e.size());
+    e.push_back(edge(a, b, cost, c));
+    g[b].push_back(e.size());
+    e.push_back(edge(b, a, -cost, 0));
+}
+vector<int> d, par, phi;
+void Ford_Bellman(int S) {
+    int n = g.size();
+    phi = vector<int>(n, inf);
+    vector<int> in_q(n);
+    phi[S] = 0;
+    queue<int> q;
+    q.push(S);
+    in_q[S] = 1;
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        in_q[u] = 0;
+        for (int id : g[u]) {
+            auto& e1 = e[id];
+            if (phi[e1.b] > phi[e1.a] + e1.cost && e1.flow < e1.c) {
+                phi[e1.b] = phi[e1.a] + e1.cost;
+                if (!in_q[e1.b]) {
+                    q.push(e1.b);
+                    in_q[e1.b] = 1;
+                }
+            }
+        }
+    }
+}
+bool trupoc(int s, int t) {
+    int n = g.size();
+    d = vector<int>(n, inf);
+    vector<int> usd;
+    d[s] = 0;
+    set<pair<int, int>> st;
+    st.emplace(0, s);
+    while (st.size()) {
+        int u = st.begin()->second;
+        int D = st.begin()->first;
+        st.erase(st.begin());
+        if (D > d[u]) continue;
+        for (auto id : g[u]) {
+            auto& e1 = e[id];
+            int w = phi[e1.a] - phi[e1.b] + e1.cost;
+            if (d[u] + w < d[e1.b] && e1.flow < e1.c) {
+                d[e1.b] = d[u] + w;
+                par[e1.b] = id;
+                st.emplace(d[e1.b], e1.b);
+            }
+        }
+    }
+    return d[t] != inf;
+}
+void getans(int s, int t) {
+    Ford_Bellman(s);
+    while (trupoc(s, t)) {
+        d = phi;
+        int minf = inf;
+        for (int v = t; v != s; v = e[par[v]].a) {
+            minf = min(minf, e[par[v]].c - e[par[v]].flow);
+        }
+        for (int v = t; v != s; v = e[par[v]].a) {
+            int id = par[v];
+            e[id].flow += minf;
+            e[id ^ 1].flow -= minf;
+        }
+    }
+}
+int32_t main() {
+    cin >> n;
+    g.resize(n);
+    d.resize(n);
+    int m;
+    cin >> m;
+    g.resize(n);
+    phi.resize(n);
+    d.resize(n);
+    par.resize(n);
+    for (int i = 0; i < m; ++i) {
+        int a, b, c, r;
+        cin >> a >> b >> c >> r;
+        --a, --b;
+        insert_edge(a, b, c, r);
+    }
+    getans(0, n - 1);
+    int ans = 0;
+    for (auto elem : e) {
+        ans += elem.flow * elem.cost;
+    }
+    cout << ans / 2;
+}
