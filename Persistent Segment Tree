@@ -1,0 +1,113 @@
+﻿#include<iostream>
+#include<vector>
+#include<algorithm>
+using namespace std;
+struct Node {
+    int sum;
+    int l = -1, r = -1;
+    Node() {
+        sum = 0;
+    }
+    Node(int _sum, int q) {
+        sum = _sum;
+    }
+};
+int N = 0;
+Node nod[20100000];
+int build(int l, int r) {
+    if (l == r) {
+        int t = N++;
+        nod[t] = Node(0, t);
+        return t;
+    }
+    int m = (l + r) / 2;
+    int t = N++;
+    nod[t] = Node(0, t);
+    nod[t].l = build(l, m);
+    nod[t].r = build(m + 1, r);
+    return t;
+}
+int upd(int v, int tl, int tr, int x) {
+    if (tl == tr) {
+        int r = N++;
+        nod[r] = Node(0, r);
+        nod[r].sum = nod[v].sum + 1;
+        return r;
+    }
+    int tm = (tl + tr) / 2;
+    int t = N++;
+    nod[t] = Node(0, t);
+    if (x <= tm) {
+        nod[t].l = upd(nod[v].l, tl, tm, x);
+        nod[t].r = nod[v].r;
+        nod[t].sum = nod[nod[t].l].sum + nod[nod[t].r].sum;
+        return t;
+    }
+    nod[t].r = upd(nod[v].r, tm + 1, tr, x);
+    nod[t].l = nod[v].l;
+    nod[t].sum = nod[nod[t].l].sum + nod[nod[t].r].sum;
+    return t;
+}
+int get(int left, int right, int tl, int tr, int x) {
+    if (tl == tr) {
+        return tl;
+    }
+    int tm = (tl + tr) >> 1;
+    int cur = nod[nod[right].l].sum - nod[nod[left].l].sum;
+    if (cur >= x) {
+        return get(nod[left].l, nod[right].l, tl, tm, x);
+    }
+    return get(nod[left].r, nod[right].r, tm + 1, tr, x - cur);
+}
+const int inf = 1e9;
+int32_t main() {
+    int n;
+    cin >> n;
+    vector<int> a(n);
+    vector<int> c;
+    int l, m;
+    cin >> a[0] >> l >> m;
+    c.push_back(a[0]);
+    vector<int> t(n + 1);
+    for (int i = 0; i < n + 1; ++i) {
+        t[i] = N++;
+        nod[t[i]] = Node(0, t[i]);
+    }
+    for (int i = 1; i < n; i++) {
+        a[i] = (1LL * a[i - 1] * l + m) % inf;
+        c.push_back(a[i]);
+    }
+    sort(c.begin(), c.end());
+    c.erase(unique(c.begin(), c.end()), c.end());
+    int len = c.size();
+    t[0] = build(0, len - 1);
+    for (int i = 1; i < n + 1; ++i) {
+        int pos = lower_bound(c.begin(), c.end(), a[i - 1]) - c.begin();
+        t[i] = upd(t[i - 1], 0, len - 1, pos);
+    }
+    long long ans = 0;
+    int b;
+    cin >> b;
+    while (b--) {
+        int G;
+        cin >> G;
+        vector<long long> x(G), y(G), k(G), j(G), i(G);
+        long long lx, mx, ly, my, lk, mk;
+        cin >> x[0] >> lx >> mx >> y[0] >> ly >> my >> k[0] >> lk >> mk;
+        for (int g = 0; g < G; g++) {
+            if (g > 0) {
+                x[g] = ((((int)i[g - 1] - 1) * lx + mx) % n) + 1;
+                y[g] = ((((int)j[g - 1] - 1) * ly + my) % n) + 1;
+                i[g] = min(x[g], y[g]);
+                j[g] = max(x[g], y[g]);
+                k[g] = ((((int)k[g - 1] - 1) * lk + mk) % (j[g] - i[g] + 1)) + 1;
+            } else {
+                i[g] = min(x[g], y[g]);
+                j[g] = max(x[g], y[g]);
+            }
+            int pos = get(t[i[g] - 1], t[j[g]], 0, len - 1, k[g]);
+            ans += c[pos];
+        }
+    }
+    cout << ans;
+}
