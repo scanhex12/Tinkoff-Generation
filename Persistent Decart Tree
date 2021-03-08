@@ -1,0 +1,112 @@
+﻿#include<iostream>
+#include<set>
+#include<algorithm>
+using namespace std;
+struct Node {
+    int key = -1, size = 1;
+    int l = -1, r = -1;
+    Node() { key = 0; }
+    Node(int x) {
+        key = x;
+    }
+};
+const int k = 9000;
+Node nod[14805000];
+int N = 0;
+int siz(int v) {
+    if (nod[v].key == -1) return 0;
+    return nod[v].size;
+}
+void upd(int v) {
+    if (nod[v].key == -1) return;
+    nod[v].size = 1 + siz(nod[v].l) + siz(nod[v].r);
+}
+int copy(int p) {
+    int t = N++;
+    nod[t] = Node(nod[p].key);
+    nod[t].l = nod[p].l;
+    nod[t].r = nod[p].r;
+    nod[t].size = nod[p].size;
+    return t;
+}
+typedef pair<int, int> Pair;
+Pair split(int p, int x) {
+    if (p == -1 || nod[p].key == -1) return { -1, -1 };
+    p = copy(p);
+    if (siz(nod[p].l) + 1 <= x) {
+        Pair q = split(nod[p].r, x - siz(nod[p].l) - 1);
+        nod[p].r = q.first;
+        upd(p);
+        return { p, q.second };
+    } else {
+        Pair q = split(nod[p].l, x);
+        nod[p].l = q.second;
+        upd(p);
+        return { q.first, p };
+    }
+}
+int merge(int l, int r) {
+    if (l == -1 || nod[l].key == -1) return r;
+    if (r == -1 || nod[r].key == -1) return l;
+    if (rand() % (siz(l) + siz(r)) < siz(l)) {
+        l = copy(l);
+        nod[l].r = merge(nod[l].r, r);
+        upd(l);
+        return l;
+    } else {
+        r = copy(r);
+        nod[r].l = merge(l, nod[r].l);
+        upd(r);
+        return r;
+    }
+}
+int root = -1;
+void insert(int x) {
+    int t = N++;
+    nod[t] = Node(x);
+    root = merge(root, t);
+}
+int main() {
+    int n, q;
+    cin >> n >> q;
+    int arr[100001];
+    for (int i = 1; i <= n; ++i) {
+        insert(i);
+    }
+    int query[50003][3];
+    for (int i = 0; i < q; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            cin >> query[i][j];
+        }
+    }
+    int timer = 0;
+    for (int i = q - 1; i > -1; i--) {
+        timer++;
+        if (timer == k) {
+            timer = 0;
+            for (int i = 0; i < n; ++i) {
+                Pair q = split(root, 1);
+                arr[i] = nod[q.first].key;
+                root = q.second;
+            }
+            root = -1;
+            N = 0;
+            for (int i = 0; i < n; ++i) {
+                insert(arr[i]);
+            }
+        }
+        int cnt = query[i][0], from = query[i][1] - 1, to = query[i][2] - 1;
+        Pair q = split(root, to);
+        Pair q1 = split(q.second, cnt);
+        int t = copy(q1.first);
+        root = merge(q.first, merge(q1.first, q1.second));
+        q = split(root, from);
+        q1 = split(q.second, cnt);
+        root = merge(q.first, merge(t, q1.second));
+    }
+    for (int i = 0; i < n; ++i) {
+        Pair q = split(root, 1);
+        cout << nod[q.first].key << ' ';
+        root = q.second;
+    }
+}
