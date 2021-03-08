@@ -1,0 +1,114 @@
+﻿#include<iostream>
+#include<vector>
+#include<algorithm>
+#include<set>
+using namespace std;
+vector<pair<int, int>> rollback;
+vector<int> sz, p;
+int getp(int v) {
+    if (p[v] == v) return v;
+    return getp(p[v]);
+}
+void unite(int a, int b, int& curans) {
+    a = getp(a);
+    b = getp(b);
+    if (a != b) {
+        curans--;
+        rollback.push_back({ a, p[a] });
+        rollback.push_back({ b, p[b] });
+        if (sz[a] < sz[b]) {
+            p[a] = b;
+        } else if (sz[a] > sz[b]) {
+            p[b] = a;
+        } else {
+            p[a] = b;
+            sz[b]++;
+        }
+    }
+}
+vector<vector<pair<int, int>>> t;
+void upd(int v, int tl, int tr, int l, int r, pair<int, int> R) {
+    if (tl > tr || l > r) return;
+    if (tl == l && tr == r) {
+        t[v].push_back(R);
+        return;
+    }
+    int tm = (tl + tr) >> 1;
+    upd(2 * v, tl, tm, l, min(r, tm), R);
+    upd(2 * v + 1, tm + 1, tr, max(l, tm + 1), r, R);
+}
+struct query {
+    int t, a, b;
+    int ans = 0;
+    query() {
+        t = 0, a = 0, b = 0;
+    }
+};
+vector<query> q;
+void build(int v, int tl, int tr, int& ans) {
+    int sz = rollback.size();
+    for (auto elem : t[v]) {
+        unite(elem.first, elem.second, ans);
+    }
+    if (tl == tr) {
+        q[tl].ans = ans;
+        return;
+    }
+    int tm = (tl + tr) >> 1;
+    int curans = ans;
+    build(2 * v, tl, tm, ans);
+    ans = curans;
+    build(2 * v + 1, tm + 1, tr, ans);
+    while (rollback.size() > sz) {
+        if (p[rollback.back().first] != rollback.back().second) {
+            p[rollback.back().first] = rollback.back().second;
+        }
+        rollback.pop_back();
+    }
+}
+int main() {
+    int n, Q;
+    cin >> n >> Q;
+    if (!Q) return 0;
+    p.resize(n);
+    sz.resize(n);
+    t.resize(4 * Q);
+    q.resize(Q);
+    for (int i = 0; i < n; ++i) {
+        p[i] = i;
+    }
+    set<pair<pair<int, int>, int>> s;
+    for (int i = 0; i < Q; ++i) {
+        char c;
+        cin >> c;
+        if (c == '?') {
+            q[i].t = 3;
+        } else if (c == '+') {
+            q[i].t = 1;
+            int u, v;
+            cin >> u >> v;
+            --u, --v;
+            if (u > v) swap(u, v);
+            s.insert({ {u, v}, i });
+        } else {
+            q[i].t = 2;
+            int u, v;
+            cin >> u >> v;
+            --u, --v;
+            if (u > v) swap(u, v);
+            auto it = s.lower_bound(make_pair(make_pair(u, v), 0));
+            upd(1, 0, Q - 1, it->second, i, it->first);
+            s.erase(it);
+        }
+    }
+    for (auto elem : s) {
+        upd(1, 0, Q - 1, elem.second, Q - 1, elem.first);
+    }
+    int ans = n;
+    build(1, 0, Q - 1, ans);
+    for (auto elem : q) {
+        if (elem.t == 3) {
+            cout << elem.ans << '\n';
+        }
+    }
+}
